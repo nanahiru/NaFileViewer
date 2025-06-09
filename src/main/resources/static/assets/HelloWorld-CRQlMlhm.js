@@ -1,0 +1,1 @@
+import{_ as o,r,c as s,a,w as n,b as _,o as l,d as c}from"./index-BKCWTq7P.js";const p={style:{"text-align":"center"}},d={__name:"HelloWorld",props:{msg:String},setup(i){return r(0),(f,e)=>{const t=_("router-link");return l(),s("h1",p,[a(t,{to:"/files"},{default:n(()=>e[0]||(e[0]=[c("打开文件目录")])),_:1,__:[0]})])}}},u=o(d,[["__scopeId","data-v-9f261b81"]]);export{u as default};

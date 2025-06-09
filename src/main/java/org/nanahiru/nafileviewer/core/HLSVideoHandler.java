@@ -14,7 +14,6 @@ public interface HLSVideoHandler {
     // 对指定segment加锁并转换，转换前需判断是否存在，存在则直接返回segment的路径
     String getSegmentPath(String videoPath, String segmentName);
 
-    // 保存位置留空，我自己会去实现。只要保证m3u8和ts在一个文件夹即可
 
 
 }

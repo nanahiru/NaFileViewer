@@ -5,19 +5,33 @@ import {pathToArray, arrayToPath} from "@/utils/path_utils.js";
 import {useRoute, useRouter} from 'vue-router'
 import {onMounted, ref, watch} from "vue";
 import {getVideos} from "@/api/video.js";
-
+import Breadcrumb from "@components/Breadcrumb.vue";
 const route = useRoute()
 const router = useRouter()
 let playerRef = ref(null)
 const fileName = ref('')
-
+let breadcrumbItems = ref([{text: 'ROOT', to: '/files'}])
 // 模拟视频列表数据（带预览图）
 const videoList = ref([])
 
 onMounted(() => {
   loadVideo()
   loadVideoList()
+  loadBreadcrumbs()
 })
+function loadBreadcrumbs() {
+  breadcrumbItems.value = [{text: 'ROOT', to: '/files'}]
+  for (let i = 0; i < route.params.paths.length; i++) {
+    let item = route.params.paths[i]
+    let currArr = route.params.paths.slice(0, i + 1)
+    let obj = {text: item}
+    if (i !== route.params.paths.length - 1) {
+      obj.to =  '/files' + arrayToPath(currArr)
+    }
+    breadcrumbItems.value.push(obj)
+  }
+
+}
 
 function loadVideo() {
   fileName.value = route.params.paths[route.params.paths.length - 1]
@@ -74,12 +88,16 @@ watch(() => route.params.paths, (newPath, oldPath) => {
   }
   loadVideo()
   loadVideoList()
+  loadBreadcrumbs()
 
 
 })
 </script>
 
 <template>
+  <div style="max-width: 1350px;margin: 0 auto">
+    <Breadcrumb :static-items="breadcrumbItems" separator="/"/>
+  </div>
   <div class="video-container">
     <div class="player-section">
       <h1 class="video-title">{{ fileName }}</h1>
