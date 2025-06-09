@@ -1,0 +1,10 @@
+spring:
+  application:
+    name: NaFileViewer
+
+project:
+  root-path: "d:/"
+  cache-path: "e://.cache"
+  env: prod
+  users:
+    admin: "123456"
