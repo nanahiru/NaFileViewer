@@ -140,7 +140,7 @@ public class JavaCVLocalVideoHandler implements VideoHandler {
             }
 
         } catch (Exception e) {
-            throw new RuntimeException("", e);
+            log.error("JAVACV解码失败", e);
         } finally {
             // 确保资源被释放
             try {
@@ -160,12 +160,16 @@ public class JavaCVLocalVideoHandler implements VideoHandler {
     public void convertToHLS(String inputPath, Codec codec, Quality quality) {
         String outputPath = projectConfig.getCachePath() + inputPath;
         inputPath = projectConfig.getRootPath() + inputPath;
+        boolean locked = false;
         try {
-            if (StringLock.tryLock(outputPath)) {
+            locked = StringLock.tryLock("CONVERT_TO_HLS:" + outputPath);
+            if (locked) {
                 convertToHLS(inputPath, outputPath, codec, quality);
             }
         } finally {
-            StringLock.unlock(outputPath);
+            if (locked) {
+                StringLock.unlock("CONVERT_TO_HLS:" + outputPath);
+            }
         }
 
     }
@@ -318,7 +322,8 @@ public class JavaCVLocalVideoHandler implements VideoHandler {
             // 将微秒转换为毫秒后创建Duration对象
             return Duration.ofMillis((long) (grabber.getLengthInTime() / 1000));
         } catch (Exception e) {
-            throw new RuntimeException("获取视频时长失败", e);
+            log.error("javacv 获取时长失败", e);
+            return Duration.ZERO;
         } finally {
             try {
                 if (grabber != null) {
@@ -354,7 +359,7 @@ public class JavaCVLocalVideoHandler implements VideoHandler {
             // 抓取视频帧
             Frame frame = grabber.grabImage();
             if (frame == null) {
-                throw new RuntimeException("无法在指定位置获取视频帧");
+                log.error("无法在指定位置获取视频帧: location: {}", location.toMillis());
             }
 
             // 将帧转换为BufferedImage
@@ -372,7 +377,8 @@ public class JavaCVLocalVideoHandler implements VideoHandler {
 
             return outFile.getAbsolutePath();
         } catch (Exception e) {
-            throw new RuntimeException("生成视频预览失败", e);
+            log.error("生成视频预览失败", e);
+            return "";
         } finally {
             try {
                 if (grabber != null) {
@@ -387,14 +393,15 @@ public class JavaCVLocalVideoHandler implements VideoHandler {
     @Override
     public String getVideoPreview(String path, Duration location) {
         String outPath = projectConfig.getCachePath() + path;
+        boolean locked = false;
         try {
-            StringLock.tryLock(outPath, 5, TimeUnit.SECONDS);
+            locked = StringLock.tryLock(outPath, 5, TimeUnit.SECONDS);
             path = projectConfig.getRootPath() + path;
             return getVideoPreview(path, outPath, location);
         } catch (InterruptedException e) {
             throw new RuntimeException(e);
         } finally {
-            StringLock.unlock(outPath);
+            if (locked) StringLock.unlock(outPath);
         }
 
     }

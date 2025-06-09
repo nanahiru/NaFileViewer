@@ -79,13 +79,14 @@ public class FFmpegCommandVideoHandler implements VideoHandler {
             ));
             pb.redirectErrorStream(true);
             pb.inheritIO();
+            log.info("开始解码: {}", inputPath);
             Process process = pb.start();
             int exitCode = process.waitFor();
             if (exitCode != 0) {
-                throw new RuntimeException("ffmpeg转码HLS失败, exit code: " + exitCode);
+                log.error("ffmpeg转码HLS失败, exit code: {}", exitCode);
             }
         } catch (Exception e) {
-            throw new RuntimeException("ffmpeg转码HLS失败", e);
+            log.error("ffmpeg转码HLS失败", e);
         }
     }
 
@@ -93,12 +94,16 @@ public class FFmpegCommandVideoHandler implements VideoHandler {
     public void convertToHLS(String inputPath, Codec codec, Quality quality) {
         String outputPath = projectConfig.getCachePath() + inputPath;
         inputPath = projectConfig.getRootPath() + inputPath;
+        boolean locked = false;
         try {
-            if (StringLock.tryLock("CONVERT_TO_HLS:" + outputPath)) {
+            locked = StringLock.tryLock("CONVERT_TO_HLS:" + outputPath);
+            if (locked) {
                 convertToHLS(inputPath, outputPath, codec, quality);
             }
         } finally {
-            StringLock.unlock("CONVERT_TO_HLS:" + outputPath);
+            if (locked) {
+                StringLock.unlock("CONVERT_TO_HLS:" + outputPath);
+            }
         }
     }
 
@@ -162,7 +167,8 @@ public class FFmpegCommandVideoHandler implements VideoHandler {
             String json = new String(process.getInputStream().readAllBytes());
             int exitCode = process.waitFor();
             if (exitCode != 0) {
-                throw new RuntimeException("ffprobe 获取视频信息失败，exit code: " + exitCode);
+                log.error("ffprobe 获取视频信息失败，exit code: {}", exitCode);
+                return new VideoFileInfo();
             }
 
             JSONObject jsonObject = JSON.parseObject(json);
@@ -196,7 +202,8 @@ public class FFmpegCommandVideoHandler implements VideoHandler {
             info.setFormatDuration(formatDuration);
             return info;
         } catch (Exception e) {
-            throw new RuntimeException("获取视频文件信息失败", e);
+            log.error("获取视频文件信息失败", e);
+            return new VideoFileInfo();
         }
     }
 
@@ -218,12 +225,14 @@ public class FFmpegCommandVideoHandler implements VideoHandler {
             String output = new String(process.getInputStream().readAllBytes()).trim();
             int exitCode = process.waitFor();
             if (exitCode != 0) {
-                throw new RuntimeException("ffprobe 获取时长失败，exit code: " + exitCode);
+                log.error("ffprobe 获取时长失败，exit code: {}", exitCode);
+                return Duration.ZERO;
             }
             double seconds = Double.parseDouble(output);
             return Duration.ofSeconds((long) seconds);
         } catch (Exception e) {
-            throw new RuntimeException("获取视频时长失败", e);
+            log.error("获取视频时长失败", e);
+            return Duration.ZERO;
         }
     }
 
@@ -252,25 +261,31 @@ public class FFmpegCommandVideoHandler implements VideoHandler {
             Process p = pb.start();
             int exitCode = p.waitFor();
             if (exitCode != 0) {
-                throw new RuntimeException("ffmpeg获取封面失败, exit code: " + exitCode);
+                log.error("ffmpeg获取封面失败, exit code: {}", exitCode);
+                return "";
             }
             return outputFile;
         } catch (Exception e) {
-            throw new RuntimeException("获取视频预览失败", e);
+            log.error("获取视频预览失败", e);
+            return "";
         }
     }
 
     @Override
     public String getVideoPreview(String path, Duration location) {
         String outPath = projectConfig.getCachePath() + path;
+        boolean locked = false;
         try {
-            StringLock.tryLock("GET_VIDEO_PREVIEW:" + outPath, 5, TimeUnit.SECONDS);
+            locked = StringLock.tryLock("GET_VIDEO_PREVIEW:" + outPath, 5, TimeUnit.SECONDS);
             path = projectConfig.getRootPath() + path;
             return getVideoPreview(path, outPath, location);
         } catch (InterruptedException e) {
-            throw new RuntimeException(e);
+            log.warn("中断线程");
+            return "";
         } finally {
-            StringLock.unlock("GET_VIDEO_PREVIEW:" + outPath);
+            if (locked) {
+                StringLock.unlock("GET_VIDEO_PREVIEW:" + outPath);
+            }
         }
     }
 
