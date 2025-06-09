@@ -6,6 +6,7 @@ spring boot + vue3实现的在线文件预览器。
 
 文件结构
 
+```tex
 ├─front  前端
 │  └─fileviewer
 │      ├─public 
@@ -40,6 +41,7 @@ spring boot + vue3实现的在线文件预览器。
 │  │      │  ├─assets
 │  │      │  └─icons
 │  │      └─templates
+```
 
 
 
